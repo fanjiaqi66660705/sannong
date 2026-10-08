@@ -1,0 +1,29 @@
+{
+  "name": "sannong-intelligent-portal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "三农发展研究会智能官网 - 政策问答机器人 + 调研数据可视化看板",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "13.5.6",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.12.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.39",
+    "tailwindcss": "^3.4.6",
+    "typescript": "^5.5.3",
+    "vercel": "^63.1.0",
+    "zeabur": "^0.5.4"
+  }
+}
