@@ -3,8 +3,6 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
-export const dynamic = "force-dynamic";
-
 export const metadata: Metadata = {
   title: "三农发展研究会 | 智能官网",
   description:

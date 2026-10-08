@@ -14,6 +14,7 @@ import {
   Cell,
   Legend,
 } from "recharts";
+import { parseByRegex } from "@/lib/text-parser";
 
 interface DataPoint {
   name: string;
@@ -76,18 +77,21 @@ export default function ResearchDashboard() {
     setResult(null);
 
     try {
-      const resp = await fetch("/api/analyze", {
+      const resp = await fetch("api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       });
-      const data = await resp.json();
       if (!resp.ok) {
-        throw new Error(data.error || "解析失败");
+        // 服务端不可用（静态托管）→ 浏览器本地正则解析
+        setResult(parseByRegex(text));
+        return;
       }
+      const data = await resp.json();
       setResult(data);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "解析失败，请重试");
+    } catch {
+      // 网络异常 → 同样走本地解析
+      setResult(parseByRegex(text));
     } finally {
       setLoading(false);
     }

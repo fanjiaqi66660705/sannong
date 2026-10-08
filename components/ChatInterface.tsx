@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, FormEvent } from "react";
+import { searchKnowledge } from "@/lib/knowledge-base";
 
 interface Citation {
   category: string;
@@ -38,6 +39,28 @@ function formatAssistantContent(text: string): string {
   return escaped
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/\n/g, "<br>");
+}
+
+/** 本地知识库降级回答（静态托管时无服务端 API，直接在浏览器检索） */
+function answerFromKnowledge(message: string): {
+  answer: string;
+  citations: Citation[];
+  mode: string;
+} {
+  const items = searchKnowledge(message, 3);
+  const citations = items.map((it) => ({ category: it.category, source: it.source }));
+  if (items.length === 0) {
+    return {
+      answer:
+        "抱歉，我未能在三农政策知识库中找到与您问题相关的内容。建议您咨询当地乡镇农业农村部门或村委会，以获取最新、最准确的政策信息。",
+      citations: [],
+      mode: "fallback",
+    };
+  }
+  const answer = items
+    .map((it) => `${it.answer}\n\n—— 参考来源：${it.source}`)
+    .join("\n\n");
+  return { answer, citations, mode: "knowledge-only" };
 }
 
 export default function ChatInterface() {
@@ -103,15 +126,27 @@ export default function ChatInterface() {
     setLoading(true);
 
     try {
-      const resp = await fetch("/api/chat", {
+      const resp = await fetch("api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: content }),
       });
-      const data = await resp.json();
       if (!resp.ok) {
-        throw new Error(data.error || "请求失败");
+        // 服务端不可用（静态托管）→ 本地知识库回答
+        const local = answerFromKnowledge(content);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `a-${Date.now()}`,
+            role: "assistant",
+            content: local.answer,
+            citations: local.citations,
+            mode: local.mode,
+          },
+        ]);
+        return;
       }
+      const data = await resp.json();
       const assistantMsg: ChatMessageItem = {
         id: `a-${Date.now()}`,
         role: "assistant",
@@ -120,15 +155,17 @@ export default function ChatInterface() {
         mode: data.mode,
       };
       setMessages((prev) => [...prev, assistantMsg]);
-    } catch (err: unknown) {
+    } catch {
+      // 网络异常 → 同样走本地知识库
+      const local = answerFromKnowledge(content);
       setMessages((prev) => [
         ...prev,
         {
           id: `a-${Date.now()}`,
           role: "assistant",
-          content:
-            "抱歉，回答生成失败，请检查网络后重试。" +
-            (err instanceof Error ? `\n（${err.message}）` : ""),
+          content: local.answer,
+          citations: local.citations,
+          mode: local.mode,
         },
       ]);
     } finally {
